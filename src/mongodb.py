@@ -1,25 +1,25 @@
 import pymongo
 
-class DB:
+class mongoDB:
 
     __instance = None
 
     @staticmethod
     def getInstance(**kwargs):
         """ Static access method. """
-        if DB.__instance == None:
+        if mongoDB.__instance == None:
             #select db
             dbName = "users"
-            DB(dbName)
+            mongoDB(dbName)
 
-        return DB.__instance
+        return mongoDB.__instance
 
     def __init__(self, dbName) -> None:
         """ Virtually private constructor. """
-        if DB.__instance != None:
+        if mongoDB.__instance != None:
             raise Exception("This class is a DB!")
         else:
-            DB.__instance = self
+            mongoDB.__instance = self
 
             self.client = pymongo.MongoClient('mongodb://localhost:27017/')
             self.db = self.client[dbName]           
