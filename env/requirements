@@ -3,3 +3,6 @@ uvicorn
 pymongo
 psycopg2
 SQLAlchemy
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart
