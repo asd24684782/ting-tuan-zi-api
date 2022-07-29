@@ -29,59 +29,7 @@ class Token(BaseModel):
     token_type: str
 
 class TokenData(BaseModel):
-    email: Union[str, None] = None
-
-class userAuthForm(OAuth2PasswordRequestForm):
-    def __init__(
-        self,
-        grant_type: str = Form(regex="password"),
-        username: str = Form(),
-        password: str = Form(),
-        email: str = Form(),
-        client_id: Optional[str] = Form(default=None),
-        client_secret: Optional[str] = Form(default=None),
-    ):
-        super().__init__(
-            grant_type=grant_type,
-            username=username,
-            password=password,
-            email=email,
-            client_id=client_id,
-            client_secret=client_secret,
-        )
-
-class OAuth2PasswordBearerWithEmail(OAuth2PasswordBearer):
-    def __init__(
-        self,
-        tokenUrl: str,
-        scheme_name: Optional[str] = None,
-        scopes: Optional[Dict[str, str]] = None,
-        description: Optional[str] = None,
-        auto_error: bool = True,
-    ):
-        if not scopes:
-            scopes = {}
-        flows = OAuthFlowsModel(password={"tokenUrl": tokenUrl, "scopes": scopes})
-        super().__init__(
-            flows=flows,
-            scheme_name=scheme_name,
-            description=description,
-            auto_error=auto_error,
-        )
-
-    async def __call__(self, request: Request) -> Optional[str]:
-        authorization: str = request.headers.get("Authorization")
-        scheme, param = get_authorization_scheme_param(authorization)
-        if not authorization or scheme.lower() != "bearer":
-            if self.auto_error:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Not authenticated",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-            else:
-                return None
-        return param
+    username: Union[str, None] = None
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -125,13 +73,13 @@ async def get_current_user(db, token: str = Depends(oauth2_scheme)):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
+        username: str = payload.get("sub")
+        if username is None:
             raise credentials_exception
-        token_data = TokenData(email=email)
+        token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = crud.get_user_by_email(db, email=token_data.email)
+    user = crud.get_user_by_email(db, username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
@@ -161,8 +109,8 @@ def get_db(request: Request):
 
 
 @app.post("/token", response_model=Token)
-async def login_for_access_token(db: Session = Depends(get_db), form_data: userAuthForm = Depends()):
-    user = authenticate_user(db, form_data.email, form_data.password)
+async def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -171,7 +119,7 @@ async def login_for_access_token(db: Session = Depends(get_db), form_data: userA
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
