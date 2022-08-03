@@ -1,13 +1,10 @@
 import email
 from typing import List, Optional, Union, Any, Dict
-
+import logging
 from datetime import datetime, timedelta
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi.security.utils import get_authorization_scheme_param
-from fastapi.openapi.models import OAuth2 as OAuth2Model
-from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.param_functions import Form
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
@@ -23,6 +20,9 @@ from model.database import SessionLocal, engine
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+logger = logging.getLogger()
+logging.basicConfig(level=logging.DEBUG,format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
+
 
 class Token(BaseModel):
     access_token: str
@@ -56,8 +56,8 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-def authenticate_user(db, email: str, password: str):
-    db_user = crud.get_user_by_email(db, email)
+def authenticate_user(db, username: str, password: str):
+    db_user = crud.get_user_by_username(db, username)
 
     if not db_user:
         return False
@@ -66,6 +66,7 @@ def authenticate_user(db, email: str, password: str):
     return db_user
 
 async def get_current_user(db, token: str = Depends(oauth2_scheme)):
+    logger.debug('into get_current_user')
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -79,13 +80,14 @@ async def get_current_user(db, token: str = Depends(oauth2_scheme)):
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = crud.get_user_by_email(db, username=token_data.username)
+    user = crud.get_user_by_username(db, username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
 
 
 async def get_current_active_user(current_user: schemas.User = Depends(get_current_user)):
+    logger.debug('into get_current_active_user')
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
@@ -109,7 +111,8 @@ def get_db(request: Request):
 
 
 @app.post("/token", response_model=Token)
-async def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends(), rental_point = Form(...)):
+    logger.debug('into token')
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -117,6 +120,7 @@ async def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth
             detail="Incorrect emil or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
@@ -127,11 +131,23 @@ async def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth
 async def read_users_me(current_user: schemas.User = Depends(get_current_active_user)):
     return current_user
 
+
+@app.get("/users/me/items/")
+async def read_own_items(current_user: schemas.User = Depends(get_current_active_user)):
+    return [{"item_id": "Foo", "owner": current_user.username}]
+
+
+
 @app.post("/users/", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    db_user = crud.get_user_by_username(db, username=user.username)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
     user.password = get_password_hash(user.password)
     return crud.create_user(db=db, user=user)
     
@@ -151,10 +167,11 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/users/login")
-def read_user(email: str, password: str, db: Session = Depends(get_db)):
-    user = authenticate_user(db, email, password)
+def read_user(username: str, password: str, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    user = authenticate_user(db, username, password)
 
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
 
-    return True
+    return token
+
