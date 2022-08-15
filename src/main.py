@@ -170,10 +170,17 @@ def read_user(username: str, password: str, db: Session = Depends(get_db), acces
 
 
 # product
-@app.get("/products/", response_model=schemas.Product)
+@app.get("/products/", response_model=List[schemas.Product])
 async def read_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     products = crud.get_products(db, skip=skip, limit=limit)
     return products
+
+@app.get("/products/detail/{product_id}", response_model=schemas.Product)
+def read_product(product_id: int, db: Session = Depends(get_db)):
+    db_product = crud.get_product(db, product_id=product_id)
+    if db_product is None:
+        raise HTTPException(status_code=404, detail="product not found")
+    return db_product
 
 @app.post("/products/", response_model=schemas.Product)
 def create_product(product: schemas.Product, db: Session = Depends(get_db)):
@@ -181,5 +188,4 @@ def create_product(product: schemas.Product, db: Session = Depends(get_db)):
     if db_product:
         raise HTTPException(status_code=400, detail="product already registered")
 
-    
     return crud.create_product(db=db, product=product)
