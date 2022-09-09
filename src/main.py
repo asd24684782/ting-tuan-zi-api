@@ -189,3 +189,25 @@ def create_product(product: schemas.Product, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="product already registered")
 
     return crud.create_product(db=db, product=product)
+
+# cart
+@app.post("/usercart")
+def input_cart(cart : schemas.CartModel, db: Session = Depends(get_db)):
+
+    if cart.amount == 0:
+        raise HTTPException(status_code=422, detail="amount can not be 0")
+    
+    db_product = crud.get_product(db, cart.product_id)
+    if not db_product:
+        raise HTTPException(status_code=422, detail="Product does not exist")
+    if cart.amount > db_product.stored_amount:
+        raise HTTPException(status_code=422, detail="Product stored amount does not enough")
+    
+    db_user = crud.get_user_by_username(db, username=cart.username)
+    if db_user is None:
+        raise HTTPException(status_code=422, detail="User not found")
+
+    db_cart = crud.get_cart(db, db_user.id, db_product.id)
+    if db_cart:
+        db_cart.amount += cart.amount
+        ''' need to write update function'''

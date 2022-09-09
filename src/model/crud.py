@@ -49,3 +49,8 @@ def create_product(db: Session, product: schemas.Product):
     db.refresh(db_product)
     return db_product
 
+
+# cart
+def get_cart(db: Session, user_id: int, product_id: int):
+    return db.query(models.UserCart).filter(models.user_id == user_id).filter(models.product_id == product_id).first()
+

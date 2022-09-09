@@ -30,3 +30,9 @@ class Product(BaseModel):
 
 	class Config:
 		orm_mode = True
+
+
+class CartModel(BaseModel):
+	product_id : int
+	username : str
+	amount : int
