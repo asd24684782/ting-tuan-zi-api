@@ -2,6 +2,7 @@
 # Standard library imports
 import logging
 import time
+import os
 from datetime import datetime
 
 # Third party imports
@@ -10,7 +11,7 @@ from fastapi import  FastAPI
 # Local application imports
 from schema.schema import *
 from routers import festivalRouter
-
+from config.config import DATABASE_HOST
 
 #---------------- global -------------------# 
 app = FastAPI()
@@ -26,7 +27,8 @@ logging.basicConfig(level=logging.WARNING,format='%(asctime)s.%(msecs)03d %(leve
 #------------------- api ---------------------#
 @app.on_event("startup")
 async def startup_event():
-    pass    
+    pass
+        
 
 @app.get('/api/1.0/ping', tags=["test"])
 async def ping():

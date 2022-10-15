@@ -12,7 +12,7 @@ from psycopg2 import pool
 
 logger = logging.getLogger()
 
-class rename:
+class festival:
     """PostgreSQL Database class."""
 
     def __init__(self, host, username, password, port, dbName):
@@ -47,8 +47,8 @@ class rename:
             return conn
 
     
-    #Read data from user table
-    def getUsers(self):
+    #Read data from festival table
+    def getFestival(self):
         try:
             sql = """ SELECT * FROM users"""
             conn = self.connect()
