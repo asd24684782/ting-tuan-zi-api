@@ -12,12 +12,12 @@ from psycopg2 import pool
 
 logger = logging.getLogger()
 
-class festival:
+class Festival:
     """PostgreSQL Database class."""
 
-    def __init__(self, host, username, password, port, dbName):
+    def __init__(self, host, user, password, port, dbName):
         self.__host     = host
-        self.__username = username
+        self.__user     = user
         self.__password = password
         self.__port     = port
         self.__dbName   = dbName
@@ -27,7 +27,7 @@ class festival:
                                                                 password=self.__password,
                                                                 host=self.__host,
                                                                 port=self.__port,
-                                                                database=self.__dbname)
+                                                                database=self.__dbName)
             if (self.__postgreSQL_pool):
                 print("Connection pool created successfully")
 
@@ -45,12 +45,14 @@ class festival:
         finally:
             logger.warning('Connection opened successfully.')
             return conn
-
     
+    def disConnect(self, conn):
+        self.__postgreSQL_pool.putconn(conn)
+
     #Read data from festival table
-    def getFestival(self):
+    def getFestivals(self):
         try:
-            sql = """ SELECT * FROM users"""
+            sql = """ SELECT * FROM festivals"""
             conn = self.connect()
             with conn.cursor() as cur:
                 cur.execute(sql)
@@ -87,16 +89,21 @@ class festival:
             return record
 
     #inert data into rename table
-    def insert(self, UUID, JsonStr):
+    def insertFestival(self, name, date, location, bands):
         try:
-            sql = """ INSERT INTO users (id, info) VALUES (%s, %s) """
-            insertTuple = (UUID, JsonStr)
-            
+            sql = """ INSERT INTO festivals (name, date, location, bands) VALUES (%s, %s, %s, %s) """
+
+            insertTuple = (name, date, location, bands)
+
             conn = self.connect()
             with conn.cursor() as cur:
                 cur.execute(sql, insertTuple)
+                conn.commit()
 
         except psycopg2.DatabaseError as e:
+            if conn:
+                conn.rollback()
+            logger.warning('insert festivals failed. roll back')
             logger.error(e)
             raise e
 

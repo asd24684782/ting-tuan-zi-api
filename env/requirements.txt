@@ -3,3 +3,4 @@ uvicorn
 pydantic
 numpy
 python-dotenv
+psycopg2

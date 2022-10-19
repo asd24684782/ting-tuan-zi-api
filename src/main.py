@@ -9,17 +9,13 @@ from datetime import datetime
 from fastapi import  FastAPI
 
 # Local application imports
-from schema.schema import *
 from routers import festivalRouter
-from config.config import DATABASE_HOST
-
 #---------------- global -------------------# 
 app = FastAPI()
 app.include_router(festivalRouter.router)
 
 logger = logging.getLogger()
 logging.basicConfig(level=logging.WARNING,format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
-
 #---------------- Dependency -------------------# 
 
 #----------------- func -----------------------#
@@ -29,6 +25,9 @@ logging.basicConfig(level=logging.WARNING,format='%(asctime)s.%(msecs)03d %(leve
 async def startup_event():
     pass
         
+@app.on_event("shutdown")
+def shutdown_event():
+    festivalRouter.festivalDB.close()
 
 @app.get('/api/1.0/ping', tags=["test"])
 async def ping():
@@ -38,7 +37,6 @@ async def ping():
         'now'    : str(datetime.now())
     }
     return data
-
 
 @app.get('/api/1.0/debug/{debugLevel}', tags=["test"])
 async def debug(debugLevel):
