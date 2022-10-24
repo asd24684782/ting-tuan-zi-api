@@ -8,6 +8,7 @@ class festivalPostRequestBody(BaseModel):
     name        : str
     date        : str
     location    : str
+    free        : bool
     bands       : List[str]
 
 

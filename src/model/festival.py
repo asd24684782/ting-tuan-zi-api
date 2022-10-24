@@ -89,7 +89,7 @@ class Festival:
             return record
 
     #inert data into rename table
-    def insertFestival(self, name, date, location, bands):
+    def insertFestival(self, name, date, location, free, bands):
         try:
             sql = """ INSERT INTO festivals (name, date, location, bands) VALUES (%s, %s, %s, %s) """
 
@@ -113,13 +113,13 @@ class Festival:
             logger.info('insert successfully.')
 
     #delete data from rename table
-    def delete(self, UUID):
+    def deleteFestival(self, id):
         try:
-            sql = """ DELETE FROM rename WHERE id=%s """
+            sql = """ DELETE FROM festivals WHERE id=%s """
 
             conn = self.connect()
             with conn.cursor() as cur:
-                cur.execute(sql, (UUID,))
+                cur.execute(sql, (id,))
                 #rows_deleted = cur.rowcount
                 #print(rows_deleted)
 
