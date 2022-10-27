@@ -1,7 +1,6 @@
 # Standard library imports
+import asyncio
 import logging
-import json
-import uuid
 
 # Third party imports
 import psycopg2
@@ -34,26 +33,32 @@ class Festival:
         except (Exception, psycopg2.DatabaseError) as error:
             print("Error while connecting to PostgreSQL", error)
 
-    def connect(self):
+    async def connect(self):
         try:
-            conn =self.__postgreSQL_pool.getconn()
+            while True:
+                conn =self.__postgreSQL_pool.getconn()
+                if conn:
+                    logger.warning('Connection opened successfully.')
+                    break
+                await asyncio.sleep(0.5)
 
         except psycopg2.DatabaseError as e:
             logger.error(e)
             raise e
 
         finally:
-            logger.warning('Connection opened successfully.')
             return conn
-    
+
     def disConnect(self, conn):
+        logger.info('put conn')
         self.__postgreSQL_pool.putconn(conn)
 
     #Read data from festival table
-    def getFestivals(self):
+    async def getFestivals(self):
         try:
             sql = """ SELECT * FROM festivals"""
-            conn = self.connect()
+            #conn = await self.connect()
+            conn = await self.connect()
             with conn.cursor() as cur:
                 cur.execute(sql)
                 records = cur.fetchall()
@@ -65,17 +70,15 @@ class Festival:
         finally:
             if conn:
                 self.disConnect(conn)
-            logger.warning('connection close')
             return records
 
-    #Read data by id from user table 
-    def getUsersByID(self, userID):
+    async def getFestivalByID(self, id):
         try:
-            sql = """ SELECT * FROM users WHERE id=%s"""
+            sql = """ SELECT * FROM festivals WHERE id=%s """
+            conn = await self.connect()
 
-            conn = self.connect()
             with conn.cursor() as cur:
-                cur.execute(sql, (userID,))
+                cur.execute(sql, (id,))
                 record = cur.fetchone()
 
         except psycopg2.DatabaseError as e:
@@ -85,20 +88,25 @@ class Festival:
         finally:
             if conn:
                 self.disConnect(conn)
-            logger.warning('connection close')
             return record
 
+
+ 
+
     #inert data into rename table
-    def insertFestival(self, name, date, location, free, bands):
+    async def insertFestival(self, name, start, end, area, location, free, bands, notes):
+        logger.debug("############ insert festival #############")
         try:
-            sql = """ INSERT INTO festivals (name, date, location, bands) VALUES (%s, %s, %s, %s) """
+            sql = """ INSERT INTO festivals (name, startdate, enddate, area, location, free, bands, notes) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) """
+            conn = await self.connect()
 
-            insertTuple = (name, date, location, bands)
+            insertTuple = (name, start, end, area, location, free, bands, notes)
 
-            conn = self.connect()
             with conn.cursor() as cur:
                 cur.execute(sql, insertTuple)
                 conn.commit()
+
+            logger.info('insert successfully.')
 
         except psycopg2.DatabaseError as e:
             if conn:
@@ -109,15 +117,39 @@ class Festival:
 
         finally:
             if conn:
-                conn.close()
-            logger.info('insert successfully.')
+                self.disConnect(conn)
+
+    async def updateFestival(self, id, name, start, end, area, location, free, bands, notes):
+        logger.debug("############ update festival #############")
+        try:
+            sql = """ UPDATE festivals SET name=%s, startdate=%s, enddate=%s, area=%s, location=%s, free=%s, bands=%s, notes=%s WHERE id=%s"""
+            conn = await self.connect()
+
+            updateTuple = (name, start, end, area, location, free, bands, notes, id)
+
+            with conn.cursor() as cur:
+                cur.execute(sql, updateTuple)
+                conn.commit()
+
+            logger.info('update successfully.')
+
+        except psycopg2.DatabaseError as e:
+            if conn:
+                conn.rollback()
+            logger.warning('update festivals failed. roll back')
+            logger.error(e)
+            raise e
+
+        finally:
+            if conn:
+                self.disConnect(conn)
 
     #delete data from rename table
-    def deleteFestival(self, id):
+    async def deleteFestival(self, id):
         try:
             sql = """ DELETE FROM festivals WHERE id=%s """
 
-            conn = self.connect()
+            conn = await self.connect()
             with conn.cursor() as cur:
                 cur.execute(sql, (id,))
                 #rows_deleted = cur.rowcount
@@ -129,8 +161,7 @@ class Festival:
 
         finally:
             if conn:
-                conn.close()
-            logger.info('delete successfully.')     
+                self.disConnect(conn) 
         
         
 

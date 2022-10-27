@@ -1,19 +1,21 @@
-from tkinter.font import names
-from xmlrpc.client import boolean
+from multiprocessing.heap import Arena
 from pydantic import BaseModel
-from typing import List
-
+from typing import List, Union
+from datetime import datetime
 
 class festivalPostRequestBody(BaseModel):
     name        : str
-    date        : str
+    start       : str
+    end         : str
+    area        : str
     location    : str
-    free        : bool
-    bands       : List[str]
+    free        : str
+    bands       : Union[List[str], None] = None
+    notes       : Union[str, None] = None
 
 
 class festivalSchema(festivalPostRequestBody):
-    id          : str
+    id          : int
 
 
 class bandPostRequestBody(BaseModel):

@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 # Standard library imports
 import logging
-
+from datetime import date, datetime
 # Third party imports
 from fastapi import APIRouter
 
@@ -24,25 +24,72 @@ festivalDB = Festival(host=DB_HOST,
 logger = logging.getLogger()
 
 @router.get("/")
-async def readfestivals():
+async def readFestivals():
     logger.warning(f'########### get festivals ###########')
-    festivals = festivalDB.getFestivals()
+    festivals = await festivalDB.getFestivals()
 
     return festivals
 
+@router.get('/{id}')
+async def readFestivalByID(id: int):
+    logger.warning(f'############## get festival {id} ################')
+    code     = "00"
+    message  = "Success"
+
+    try:
+        record = await festivalDB.getFestivalByID(id)
+
+        festival =  {
+            "id"        :record[0],
+            "name"      :record[1],
+            "location"  :record[2],
+            "bands"     :record[3],
+            "free"      :record[4],
+            "notes"     :record[5],
+            "area"      :record[6],
+            "start"     :record[7],
+            "end"       :record[8]
+        }
+ 
+
+        data = {
+            'code' : code,
+            'message' : message,
+            'festival': festival
+        }
+
+    except:
+        code     = "01"
+        message  = "failed"
+        data = {
+            'code' : code,
+            'message' : message,
+        }   
+
+    finally:
+        return data
+
+
+
+
 @router.post('/')
-async def postfestival(festivalBody: festivalPostRequestBody):
+async def postFestival(festivalBody: festivalPostRequestBody):
     logger.warning(f'########### post festivals ###########')
     code     = "00"
     message  = "Success"
 
     try:
         logger.debug(festivalBody)
-        festivalDB.insertFestival(
+
+        await festivalDB.insertFestival(
             name=festivalBody.name,
-            date=festivalBody.date,
+            start=datetime.strptime(festivalBody.start, '%Y-%m-%d %H:%M:%S'),
+            end=datetime.strptime(festivalBody.end, '%Y-%m-%d %H:%M:%S'),
+            area=festivalBody.area,
             location=festivalBody.location,
-            bands=festivalBody.bands
+            free=bool(festivalBody.free.lower() == 'true'),
+            bands=festivalBody.bands,
+            notes=festivalBody.notes
         )
 
         data = {
@@ -61,6 +108,43 @@ async def postfestival(festivalBody: festivalPostRequestBody):
     finally:
         return data
 
+@router.put('/')
+async def updateFestival(festivalBody: festivalSchema):
+    logger.warning(f'########### update festivals ###########')
+    code     = "00"
+    message  = "Success"
+
+    try:
+        logger.debug(festivalBody)
+
+        await festivalDB.updateFestival(
+            id=festivalBody.id,
+            name=festivalBody.name,
+            start=datetime.strptime(festivalBody.start, '%Y-%m-%d %H:%M:%S'),
+            end=datetime.strptime(festivalBody.end, '%Y-%m-%d %H:%M:%S'),
+            area=festivalBody.area,
+            location=festivalBody.location,
+            free=bool(festivalBody.free.lower() == 'true'),
+            bands=festivalBody.bands,
+            notes=festivalBody.notes
+        )
+
+        data = {
+            'code' : code,
+            'message' : message,
+        }
+
+    except:
+        code     = "01"
+        message  = "failed"
+        data = {
+            'code' : code,
+            'message' : message,
+        }
+
+    finally:
+        return data   
+
 @router.delete('/')
 async def deleteProfile(profileUUID):
     logger.warning(f'########### delete Profiles by uuid {profileUUID} ###########')
@@ -68,7 +152,7 @@ async def deleteProfile(profileUUID):
     message  = "Success"
 
     try:
-        profileDB.deleteProfile(profileUUID)
+        await profileDB.deleteProfile(profileUUID)
 
         data = {
             'code' : code,

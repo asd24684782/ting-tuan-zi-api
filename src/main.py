@@ -15,7 +15,7 @@ app = FastAPI()
 app.include_router(festivalRouter.router)
 
 logger = logging.getLogger()
-logging.basicConfig(level=logging.WARNING,format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
+logging.basicConfig(level=logging.DEBUG,format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s')
 #---------------- Dependency -------------------# 
 
 #----------------- func -----------------------#
