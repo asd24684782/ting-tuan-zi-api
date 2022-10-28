@@ -45,20 +45,30 @@ async def readFestivals():
     code     = "00"
     message  = "Success"
     try:
-        festivals = await festivalDB.getFestivals()
+        festivals = await festivalDB.getFestivalsIn30day()
         if not festivals:
             raise ValueError('Data not exist')
+
+        response = []
+        for f in festivals:
+            temp = {
+                'id': f[0],
+                'name': f[1],
+                'date': makeDateStr(f[2], f[3])
+            }
+            response.append(temp)
+
 
         data = {
             'code' : code,
             'message': message,
-            'festival': festivals 
+            'festivals': response
         }
 
 
     except ValueError:
         code = '01'
-        message = 'No festival in database'
+        message = 'no festival in 30 days '
         data = {
             'code': code,
             'message': message

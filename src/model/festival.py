@@ -54,10 +54,9 @@ class Festival:
         self.__postgreSQL_pool.putconn(conn)
 
     #Read data from festival table
-    async def getFestivals(self):
+    async def getFestivalsIn30day(self):
         try:
-            sql = """ SELECT * FROM festivals"""
-            #conn = await self.connect()
+            sql = """ SELECT id, name, startdate, enddate FROM festivals WHERE (NOW() + interval '30 day') > startdate and startdate > NOW() order by startdate asc"""
             conn = await self.connect()
             with conn.cursor() as cur:
                 cur.execute(sql)
@@ -92,7 +91,7 @@ class Festival:
 
     async def getFestivalFree(self):
         try:
-            sql = """ SELECT id, name, startdate, enddate FROM festivals WHERE free=true order by startdate asc"""
+            sql = """ SELECT id, name, startdate, enddate FROM festivals WHERE free=true AND startdate > NOW() order by startdate asc"""
             conn = await self.connect()
 
             with conn.cursor() as cur:
@@ -109,9 +108,8 @@ class Festival:
             return record
 
     async def getFestivalByBand(self, band):
-
         try:
-            sql = """ SELECT id, name, startdate, enddate FROM festivals WHERE %s=any(bands) order by startdate asc"""
+            sql = """ SELECT id, name, startdate, enddate FROM festivals WHERE %s=any(bands) AND startdate > NOW() order by startdate asc"""
             conn = await self.connect()
             
             with conn.cursor() as cur:
@@ -126,7 +124,6 @@ class Festival:
             if conn:
                 self.disConnect(conn)
             return record
-
 
     #inert data into rename table
     async def insertFestival(self, name, start, end, area, location, free, bands, notes):
