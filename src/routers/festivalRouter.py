@@ -2,6 +2,7 @@
 # Standard library imports
 import logging
 from datetime import date, datetime
+from urllib import response
 # Third party imports
 from fastapi import APIRouter
 
@@ -10,7 +11,7 @@ from model.festival import Festival
 from setting.setting import DB_HOST, DB_USER, DB_PASSWORD, DB_PORT, DB_NAME
 from schema.schema import festivalPostRequestBody, festivalSchema
 
-
+# -------------------- global -----------------------------------
 router = APIRouter(
     prefix="/festivals",
     tags=["festivals"],
@@ -23,32 +24,70 @@ festivalDB = Festival(host=DB_HOST,
                       dbName=DB_NAME)
 logger = logging.getLogger()
 
+# ---------------------- func -----------------------------------
+
+def makeDateStr(start, end):
+    dateStr = f'{start} ~ {end}' if start != end else start
+    return dateStr
+
 @router.get("/")
 async def readFestivals():
     logger.warning(f'########### get festivals ###########')
-    festivals = await festivalDB.getFestivals()
+    code     = "00"
+    message  = "Success"
+    try:
+        festivals = await festivalDB.getFestivals()
+        if not festivals:
+            raise ValueError('Data not exist')
 
-    return festivals
+        data = {
+            'code' : code,
+            'message': message,
+            'festival': festivals 
+        }
 
-@router.get('/{id}')
+
+    except ValueError:
+        code = '01'
+        message = 'No festival in database'
+        data = {
+            'code': code,
+            'message': message
+        }
+
+    except:
+        code = '01'
+        message = 'failed'
+        data = {
+            'code': code,
+            'message': message
+        }       
+
+    finally:
+        return data
+
+@router.get('/id/{id}')
 async def readFestivalByID(id: int):
     logger.warning(f'############## get festival {id} ################')
     code     = "00"
     message  = "Success"
 
     try:
-        record = await festivalDB.getFestivalByID(id)
+        festival = await festivalDB.getFestivalByID(id)
+        if not festival:
+            raise ValueError(f'festival {id} not exist')
+
 
         festival =  {
-            "id"        :record[0],
-            "name"      :record[1],
-            "location"  :record[2],
-            "bands"     :record[3],
-            "free"      :record[4],
-            "notes"     :record[5],
-            "area"      :record[6],
-            "start"     :record[7],
-            "end"       :record[8]
+            "id"        :festival[0],
+            "name"      :festival[1],
+            "location"  :festival[2],
+            "bands"     :festival[3],
+            "free"      :festival[4],
+            "notes"     :festival[5],
+            "area"      :festival[6],
+            "start"     :festival[7],
+            "end"       :festival[8]
         }
  
 
@@ -56,6 +95,14 @@ async def readFestivalByID(id: int):
             'code' : code,
             'message' : message,
             'festival': festival
+        }
+
+    except ValueError:
+        code = '01'
+        message = f'festival {id} not exist'
+        data = {
+            'code': code,
+            'message': message
         }
 
     except:
@@ -68,9 +115,6 @@ async def readFestivalByID(id: int):
 
     finally:
         return data
-
-
-
 
 @router.post('/')
 async def postFestival(festivalBody: festivalPostRequestBody):
@@ -169,3 +213,55 @@ async def deleteProfile(profileUUID):
 
     finally:
         return data
+
+@router.get('/free')
+async def readFestivalFree():
+    logger.warning(f'############## get festival free ################')
+    code     = "00"
+    message  = "Success"
+
+    try:
+        festivals = await festivalDB.getFestivalFree()
+        if not festivals:
+            raise ValueError(f'festival free not exist')
+
+        response = []
+        for f in festivals:
+            id = f[0]
+            name = f[1]
+            start = f[2]
+            end = f[3]
+            dateStr = makeDateStr(start, end)
+            temp = {
+                'id': id,
+                'name': name,
+                'date': dateStr
+            }
+            response.append(temp)
+
+
+        data = {
+            'code' : code,
+            'message' : message,
+            'festivals': response
+        }
+
+    except ValueError:
+        code = '01'
+        message = f'festival free not exist, 你個免費仔'
+        data = {
+            'code': code,
+            'message': message
+        }
+
+    except:
+        code     = "01"
+        message  = "failed"
+        data = {
+            'code' : code,
+            'message' : message,
+        }   
+
+    finally:
+        return data
+

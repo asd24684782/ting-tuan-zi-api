@@ -90,6 +90,24 @@ class Festival:
                 self.disConnect(conn)
             return record
 
+    async def getFestivalFree(self):
+        try:
+            sql = """ SELECT id, name, startdate, enddate FROM festivals WHERE free=true """
+            conn = await self.connect()
+
+            with conn.cursor() as cur:
+                cur.execute(sql, (id,))
+                record = cur.fetchall()
+
+        except psycopg2.DatabaseError as e:
+            logger.error(e)
+            raise e
+
+        finally:
+            if conn:
+                self.disConnect(conn)
+            return record
+
 
  
 
