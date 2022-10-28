@@ -30,6 +30,14 @@ def makeDateStr(start, end):
     dateStr = f'{start} ~ {end}' if start != end else start
     return dateStr
 
+def makeBandStr(bands):
+    bandStr = ""
+    for band in bands:
+        bandStr = bandStr + str(band) + "、"
+    bandStr = bandStr[:-1]
+
+    return bandStr
+
 @router.get("/")
 async def readFestivals():
     logger.warning(f'########### get festivals ###########')
@@ -78,16 +86,17 @@ async def readFestivalByID(id: int):
             raise ValueError(f'festival {id} not exist')
 
 
+
+
         festival =  {
-            "id"        :festival[0],
-            "name"      :festival[1],
-            "location"  :festival[2],
-            "bands"     :festival[3],
-            "free"      :festival[4],
-            "notes"     :festival[5],
-            "area"      :festival[6],
-            "start"     :festival[7],
-            "end"       :festival[8]
+            "id"        : festival[0],
+            "name"      : festival[1],
+            "location"  : festival[2],
+            "bands"     : makeBandStr(festival[3]),
+            "pay"       : '免費' if festival[4] else '要錢' ,
+            "notes"     : festival[5],
+            "area"      : festival[6],
+            "date"      : makeDateStr(festival[7], festival[8])
         }
  
 
@@ -227,15 +236,10 @@ async def readFestivalFree():
 
         response = []
         for f in festivals:
-            id = f[0]
-            name = f[1]
-            start = f[2]
-            end = f[3]
-            dateStr = makeDateStr(start, end)
             temp = {
-                'id': id,
-                'name': name,
-                'date': dateStr
+                'id': f[0],
+                'name': f[1],
+                'date': makeDateStr(f[2], f[3])
             }
             response.append(temp)
 
@@ -265,3 +269,47 @@ async def readFestivalFree():
     finally:
         return data
 
+@router.get('/band/{band}')
+async def readFestivalByBand(band: str):
+    logger.warning(f'############## get festival {band} ################')
+    code     = "00"
+    message  = "Success"
+
+    try:
+        festivals = await festivalDB.getFestivalByBand(band)
+        if not festivals:
+            raise ValueError(f'festival with {band} not exist')
+
+        response = []
+        for f in festivals:
+            temp = {
+                "id"        : f[0],
+                "name"      : f[1],
+                "date"      : makeDateStr(f[2], f[3])
+            }
+            response.append(temp)
+
+        data = {
+            'code' : code,
+            'message' : message,
+            'festivals': response
+        }
+
+    except ValueError:
+        code = '01'
+        message = f'festival with {band} not exist'
+        data = {
+            'code': code,
+            'message': message
+        }
+
+    except:
+        code     = "01"
+        message  = "failed"
+        data = {
+            'code' : code,
+            'message' : message,
+        }   
+
+    finally:
+        return data

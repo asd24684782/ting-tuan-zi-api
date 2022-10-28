@@ -92,7 +92,7 @@ class Festival:
 
     async def getFestivalFree(self):
         try:
-            sql = """ SELECT id, name, startdate, enddate FROM festivals WHERE free=true """
+            sql = """ SELECT id, name, startdate, enddate FROM festivals WHERE free=true order by startdate asc"""
             conn = await self.connect()
 
             with conn.cursor() as cur:
@@ -108,8 +108,25 @@ class Festival:
                 self.disConnect(conn)
             return record
 
+    async def getFestivalByBand(self, band):
 
- 
+        try:
+            sql = """ SELECT id, name, startdate, enddate FROM festivals WHERE %s=any(bands) order by startdate asc"""
+            conn = await self.connect()
+            
+            with conn.cursor() as cur:
+                cur.execute(sql, (band,))
+                record = cur.fetchall()
+
+        except psycopg2.DatabaseError as e:
+            logger.error(e)
+            raise e
+
+        finally:
+            if conn:
+                self.disConnect(conn)
+            return record
+
 
     #inert data into rename table
     async def insertFestival(self, name, start, end, area, location, free, bands, notes):
