@@ -38,6 +38,7 @@ def makeBandStr(bands):
 
     return bandStr
 
+# ----------------------- api ------------------------------------
 @router.get("/")
 async def readFestivals():
     logger.warning(f'########### get festivals ###########')
@@ -70,6 +71,42 @@ async def readFestivals():
             'code': code,
             'message': message
         }       
+
+    finally:
+        return data
+
+@router.post('/')
+async def postFestival(festivalBody: festivalPostRequestBody):
+    logger.warning(f'########### post festivals ###########')
+    code     = "00"
+    message  = "Success"
+
+    try:
+        logger.debug(festivalBody)
+
+        await festivalDB.insertFestival(
+            name=festivalBody.name,
+            start=datetime.strptime(festivalBody.start, '%Y-%m-%d %H:%M:%S'),
+            end=datetime.strptime(festivalBody.end, '%Y-%m-%d %H:%M:%S'),
+            area=festivalBody.area,
+            location=festivalBody.location,
+            free=bool(festivalBody.free.lower() == 'true'),
+            bands=festivalBody.bands,
+            notes=festivalBody.notes
+        )
+
+        data = {
+            'code' : code,
+            'message' : message,
+        }
+
+    except:
+        code     = "01"
+        message  = "failed"
+        data = {
+            'code' : code,
+            'message' : message,
+        }
 
     finally:
         return data
@@ -125,45 +162,9 @@ async def readFestivalByID(id: int):
     finally:
         return data
 
-@router.post('/')
-async def postFestival(festivalBody: festivalPostRequestBody):
-    logger.warning(f'########### post festivals ###########')
-    code     = "00"
-    message  = "Success"
-
-    try:
-        logger.debug(festivalBody)
-
-        await festivalDB.insertFestival(
-            name=festivalBody.name,
-            start=datetime.strptime(festivalBody.start, '%Y-%m-%d %H:%M:%S'),
-            end=datetime.strptime(festivalBody.end, '%Y-%m-%d %H:%M:%S'),
-            area=festivalBody.area,
-            location=festivalBody.location,
-            free=bool(festivalBody.free.lower() == 'true'),
-            bands=festivalBody.bands,
-            notes=festivalBody.notes
-        )
-
-        data = {
-            'code' : code,
-            'message' : message,
-        }
-
-    except:
-        code     = "01"
-        message  = "failed"
-        data = {
-            'code' : code,
-            'message' : message,
-        }
-
-    finally:
-        return data
-
-@router.put('/')
-async def updateFestival(festivalBody: festivalSchema):
-    logger.warning(f'########### update festivals ###########')
+@router.put('/id/{id}')
+async def updateFestival(id: int, festivalBody: festivalSchema):
+    logger.warning(f'########### update festivals {id} ###########')
     code     = "00"
     message  = "Success"
 
@@ -171,7 +172,7 @@ async def updateFestival(festivalBody: festivalSchema):
         logger.debug(festivalBody)
 
         await festivalDB.updateFestival(
-            id=festivalBody.id,
+            id=id,
             name=festivalBody.name,
             start=datetime.strptime(festivalBody.start, '%Y-%m-%d %H:%M:%S'),
             end=datetime.strptime(festivalBody.end, '%Y-%m-%d %H:%M:%S'),
@@ -197,31 +198,6 @@ async def updateFestival(festivalBody: festivalSchema):
 
     finally:
         return data   
-
-@router.delete('/')
-async def deleteProfile(profileUUID):
-    logger.warning(f'########### delete Profiles by uuid {profileUUID} ###########')
-    code     = "00"
-    message  = "Success"
-
-    try:
-        await profileDB.deleteProfile(profileUUID)
-
-        data = {
-            'code' : code,
-            'message' : message,
-        }
-
-    except:
-        code     = "01"
-        message  = "failed"
-        data = {
-            'code' : code,
-            'message' : message,
-        }
-
-    finally:
-        return data
 
 @router.get('/free')
 async def readFestivalFree():
