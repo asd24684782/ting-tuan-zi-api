@@ -54,9 +54,9 @@ class Festival:
         self.__postgreSQL_pool.putconn(conn)
 
     #Read data from festival table
-    async def getFestivalsIn30day(self):
+    async def getFestivalsIn7day(self):
         try:
-            sql = """ SELECT id, name, startdate, enddate FROM festivals WHERE (NOW() + interval '30 day') > startdate and startdate > NOW() order by startdate asc"""
+            sql = """ SELECT id, name, startdate, enddate FROM festivals WHERE (NOW() + interval '7 day') > startdate and startdate > NOW() order by startdate asc"""
             conn = await self.connect()
             with conn.cursor() as cur:
                 cur.execute(sql)
@@ -129,7 +129,8 @@ class Festival:
     async def insertFestival(self, name, start, end, area, location, free, bands, notes):
         logger.debug("############ insert festival #############")
         try:
-            sql = """ INSERT INTO festivals (name, startdate, enddate, area, location, free, bands, notes) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) """
+            sql = """ INSERT INTO festivals (name, startdate, enddate, area, location, free, bands, notes) 
+                      VALUES (%s, %s, %s, %s, %s, %s, %s, %s) """
             conn = await self.connect()
 
             insertTuple = (name, start, end, area, location, free, bands, notes)

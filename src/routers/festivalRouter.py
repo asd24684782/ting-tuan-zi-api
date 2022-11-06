@@ -45,7 +45,7 @@ async def readFestivals():
     code     = "00"
     message  = "Success"
     try:
-        festivals = await festivalDB.getFestivalsIn30day()
+        festivals = await festivalDB.getFestivalsIn7day()
         if not festivals:
             raise ValueError('Data not exist')
 
